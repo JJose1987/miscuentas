@@ -1,0 +1,97 @@
+/* Styles */
+body {
+   font-family: 'courier new' monospace;
+   font-size: 1vmax;
+   line-height: 1.5vmax;
+   margin: 0.1%;
+   text-align: center;
+   vertical-align: top;
+   
+   background-color: #ffffff;
+}
+/* Título */
+h1 {
+    color: #333;
+    font-size: 2.5vmax;
+    margin-bottom: 1vmax;
+}
+
+input[accept=".xls"] {
+    display: none;
+}
+
+.material-symbols-outlined, select, #importe {
+    display: inline-block; /* Los pone en línea */
+    vertical-align: middle; /* Alineación vertical */
+    margin-right: 0.8vmax; /* Espacio entre el input y el select */
+
+    padding: 0.8vmax;
+    margin-bottom: 0.8vmax;
+    font-size: 1vmax;
+    border-radius: 0.4vmax;
+    border: 0.1vmax solid #ccc;
+    background-color: #fff;
+}
+
+.material-symbols-outlined:hover, select:hover, #importe:hover {
+    border-color: #007bff;
+    cursor: pointer;
+}
+
+.material-symbols-outlined {
+    font-size: 3vmax !important;
+}
+
+/* Table */
+.table {
+    display: table;
+    width: 90%;
+    margin-left: 5%;
+    border: 0.3vmax solid #333; /* Borde de la tabla */
+    border-radius: 0.5vmax; /* Bordes redondeados */
+    margin-bottom: 3vmax;
+}
+/* Row */
+.table div {
+    display: table-row;
+    margin-top: 3vmax;
+    font-weight: bold;
+}
+
+/* Estilo para la primera fila (encabezado) */
+.table > div:first-child div {
+    background-color: #2bd124;
+}
+
+/* Cell */
+.table div div {
+    display: table-cell;
+    border:solid #000000 0.1vmax;
+    padding: 0.8vmax;
+    text-align: left;
+    vertical-align: middle;
+    background-color: #e5eef0;
+}
+
+.table div div:nth-child(1) {
+    width: 90%;
+}
+
+/* Estilo solo de la columna de 2 */
+.table div div:nth-child(2), .table div div:nth-child(3) {
+    text-align: right;
+    width: 5%;
+}
+
+.table > div:nth-child(n+2) > div:nth-child(2):not(:first-child):hover {
+    cursor: pointer;
+}
+
+/* Estilo solo de la columna de 3 */
+.table div div:nth-child(3) .material-symbols-outlined {
+    background-color: rgba(0,0,0,0) !important;
+    font-size: 2vmax !important;
+    margin: 0vmax !important;
+    padding: 0vmax !important;
+    border: 0vmax !important;
+}
