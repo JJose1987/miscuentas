@@ -20,6 +20,8 @@ function main() {
             document.execCommand('copy');
             //  Borra temporal
             $temp.remove();
+            
+            toast('Texto copiado', 3000);
         } else if ($(this).text() == 'remove_selection') {
             // Borrar aquellos que se han marcado
             $('div.table div div[onclick]').each(function() {
@@ -46,6 +48,8 @@ function main() {
             document.execCommand('copy');
             //  Borra temporal
             $temp.remove();
+            
+            toast('Texto copiado', 3000);
         } else if ($(this).text() == 'undo') {
             $.each(kwargSum, function (i, item) {
                 if (item[0] == $('select[name=date]').val()) {
