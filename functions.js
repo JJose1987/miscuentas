@@ -249,7 +249,7 @@ function importe(index) {
         
         kwargCpy = kwargCpy.replace(aux, '');
 
-        if (kwargCpy == '=') {
+        if (kwargCpy == '') {
             kwargCpy = '';
             $('#importe').css({display: 'none'});
             $("span.material-symbols-outlined:contains('content_copy')").hide();
@@ -263,7 +263,7 @@ function importe(index) {
         row.find('div').css('background-color', '#dfffdd');
 
         if (kwargCpy == '') {
-            kwargCpy += '=';
+            kwargCpy += '';
         }
 
         kwargCpy += aux;
