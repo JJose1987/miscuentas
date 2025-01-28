@@ -20,6 +20,8 @@ function main() {
             document.execCommand('copy');
             //  Borra temporal
             $temp.remove();
+            
+            toast('Texto copiado', 3000);
         } else if ($(this).text() == 'remove_selection') {
             // Borrar aquellos que se han marcado
             $('div.table div div[onclick]').each(function() {
@@ -46,6 +48,8 @@ function main() {
             document.execCommand('copy');
             //  Borra temporal
             $temp.remove();
+            
+            toast('Texto copiado', 3000);
         } else if ($(this).text() == 'undo') {
             $.each(kwargSum, function (i, item) {
                 if (item[0] == $('select[name=date]').val()) {
@@ -77,18 +81,23 @@ function main() {
                 var out = [];
 
                 if (row.length == 6) {
+                    // Tarjetas
                     var aux0 = new Date(row[0].substring(6), row[0].substring(3,5), row[0].substring(0,2));
                     if (aux0 != 'Invalid Date') {
                         row[0] = `${aux0.getFullYear()}${('0' + aux0.getMonth()).slice(-2)}`;
+                        if (aux0.getMonth() == 0){
+                            row[0] = `${aux0.getFullYear() - 1}${'12'}`;
+                        }
                     }
 
                     out.push(row[0]);
                     out.push(row[2]);
                     out.push(parseFloat(row[4].replace(',', '.')));
                 } else if (row.length == 12) {
+                    // Cuentas
                     var aux0 = new Date((new Date(1899, 11, 30)).getTime() + row[0] * 24 * 60 * 60 * 1000);
                     if (aux0 != 'Invalid Date') {
-                        row[0] = `${aux0.getFullYear()}${('0' + aux0.getMonth()).slice(-2)}`;
+                        row[0] = `${aux0.getFullYear()}${('0' + (aux0.getMonth() + 1)).slice(-2)}`;
                     }
 
                     out.push(row[0]);
@@ -229,7 +238,7 @@ function importe(index) {
     var aux = formatNumber(kwargSum[index][2]);
 
     if (aux[0] == '+') {
-        aux = aux.replace('+', '-');
+        aux = aux.replace('+', '+');
     } else if (aux[0] == '-') {
         aux = aux.replace('-', '+');
     }
