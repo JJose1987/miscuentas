@@ -236,12 +236,13 @@ function formatNumber(value) {
 function importe(index) {
     // Guardamos el importe en una auxiliar y le cambiamos le signo
     var aux = formatNumber(kwargSum[index][2]);
-
+    /*
     if (aux[0] == '+') {
         aux = aux.replace('+', '+');
     } else if (aux[0] == '-') {
         aux = aux.replace('-', '+');
     }
+    */
     // Seleccionamos la fila con el texto
     var row = $('div.table div').filter(function() {
         return $(this).text() == kwargSum[index][1] + formatNumber(kwargSum[index][2]) + 'delete';  // Filtramos por el texto que contiene el concepto
