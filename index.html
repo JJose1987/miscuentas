@@ -29,27 +29,18 @@
         <script src="https://cdn.jsdelivr.net/npm/colorthief@2.3.0/dist/color-thief.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.0/qrious.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
         <script src="https://jjose1987.github.io/MyJQuery/MyJQuery.js"></script>
+        <!-- SheetJS - INI -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        <!-- SheetJS - FIN -->
 
+        <script src="arrayGroup.js"></script>
         <script src="functions.js"></script>
 
     </head>
     <body>
-        <h1>Cargar Archivo XLS</h1>
-        <span class="material-symbols-outlined" >upload_file</span>
-        <input type="file" accept=".xls"/>
-        
-        <span id="dnone" >
-            <select name="date"></select>
-            <div id="importe"></div>
-            <span class="material-symbols-outlined">content_copy</span>
-            <span class="material-symbols-outlined">remove_selection</span>
-            <span class="material-symbols-outlined">mop</span>
-            <span class="material-symbols-outlined">undo</span>
-        </span>
-
-        <div class="table" ></div>
+        <input type="file" multiple accept=".xls,.xlsx"><br />
+        <select name="date"></select>
     </body>
 </html>

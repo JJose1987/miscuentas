@@ -1,141 +1,74 @@
 /* JavaScript */
 /* https://www.degraeve.com/reference/urlencoding.php */
 // Variables
-var kwargs   = [];
-var kwargSum = [];
-var kwargCpy = '';
-
+var kwargs = [];
+var endFiles  = false;
 // Funciones
 function main() {
-    $('.material-symbols-outlined').on('click', function() {
-        if ($(this).text() == 'upload_file') {
-            $('input[accept=".xls"]').click();
-        } else if ($(this).text() == 'mop') {
-            kwargCpy = '';
-            divTable($('select[name=date]').val());
-        } else if ($(this).text() == 'content_copy') {
-            // Crea un lugar temporal para guardar el valor a copiar
-            var $temp = $('<input>').val(kwargCpy).appendTo('body').select();
-            // Ejecuta el evento copiar
-            document.execCommand('copy');
-            //  Borra temporal
-            $temp.remove();
-            
-            toast('Texto copiado', 3000);
-        } else if ($(this).text() == 'remove_selection') {
-            // Borrar aquellos que se han marcado
-            $('div.table div div[onclick]').each(function() {
-                // Obtener el valor del atributo onclick
-                var onclickValue = $(this).attr('onclick');
+    //
+    $('select[name=date]').css({display: 'none'});
+    //
+    $('input[accept=".xls,.xlsx"]').on('change', function (e) {
+        kwargs = [];
 
-                // Usar una expresión regular para extraer el nombre de la función y el argumento
-                var regex = /(\w+)\(([^)]+)\)/;
-                var match = onclickValue.match(regex);
+        let files = e.target.files;
+        let ifile = 0;
 
-                if (match) {
-                    // match[1] es el nombre de la función
-                    // match[2] es el argumento
-                    if (match[1] == 'ocultar' && rgbToHex($(this).css('background-color')) == '#dfffdd') {
-                        ocultar(match[2]);
-                    }
-                }
-            });
-            
-            // Copia importes
-            // Crea un lugar temporal para guardar el valor a copiar
-            var $temp = $('<input>').val(kwargCpy).appendTo('body').select();
-            // Ejecuta el evento copiar
-            document.execCommand('copy');
-            //  Borra temporal
-            $temp.remove();
-            
-            toast('Texto copiado', 3000);
-        } else if ($(this).text() == 'undo') {
-            $.each(kwargSum, function (i, item) {
-                if (item[0] == $('select[name=date]').val()) {
-                    item[3] = true;
-                    kwargSum[i] = item;
-                }
-            });
+        Array.from(files).forEach(file => {
+            let reader = new FileReader();
 
-            divTable($('select[name=date]').val());
-        }
-    });
-    
-    $('input[accept=".xls"]').on('change', function() {
-        var file = this.files[0];
+            reader.onload = function (event) {
+                let data = new Uint8Array(event.target.result);
+                let workbook = XLSX.read(data, { type: 'array' });
 
-        var reader = new FileReader();
+                // Primera hoja
+                let sheetName = workbook.SheetNames[0];
+                let worksheet = workbook.Sheets[sheetName];
+                // Convertir a JSON
+                let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-        reader.onload = function(e) {
-            var data = new Uint8Array(e.target.result);
-            var workbook = XLSX.read(data, { type: 'array' });
+                jsonData.forEach(item => {
+                    row = [];
+                    // Cuenta    : Fecha de operación, Fecha valor, Concepto, Importe, Divisa, Saldo, Divisa, Nº mov, Oficina
+                    // Tarjeta   : Fecha operación, Hora, Nombre comercio, Concepto, Importe, Divisa
 
-            // Leer la primera hoja
-            var firstSheetName = workbook.SheetNames[0];
-            var worksheet = workbook.Sheets[firstSheetName];
-            var json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    // Resultado : Fecha de operación + Hora, Concepto, 'Grupo', Importe    
+                    var date_time;
+                    if (item.length == 12 && $.isNumeric(item[0])) {
+                        // Cuenta
+                        date_time = new Date((new Date(1899, 11, 30)).getTime() + parseInt(item[0]) * 24 * 60 * 60 * 1000);
 
-            // Mostrar los datos en el div de salida
-            json.forEach(row => {
-                var out = [];
+                        row.push(date_time.toISOString());              // Fecha de operación
+                        row.push(item[2]);                              // Concepto
+                        row.push(setGroup(item[2]));                    // Grupo
+                        row.push(parseFloat(item[3]));                  // Importe
 
-                if (row.length == 6) {
-                    // Tarjetas
-                    var aux0 = new Date(row[0].substring(6), row[0].substring(3,5), row[0].substring(0,2));
-                    if (aux0 != 'Invalid Date') {
-                        row[0] = `${aux0.getFullYear()}${('0' + aux0.getMonth()).slice(-2)}`;
-                        if (aux0.getMonth() == 0){
-                            row[0] = `${aux0.getFullYear() - 1}${'12'}`;
+                        if (row[2] != 'delete') {
+                            kwargs.push(row);
+                        }
+                    } else if (item.length == 6 && $.isNumeric(item[0][0])) {
+                        // Tarjeta
+                        date_time = new Date((item[0]).substring(6), parseInt((item[0]).substring(3,5) - 1), (item[0]).substring(0,2), (item[1]).substring(0,2), (item[1]).substring(3));
+
+                        row.push(date_time.toISOString());               // Fecha de operación + Hora
+                        row.push(item[2]);                               // Concepto
+                        row.push(setGroup(item[2]));                     // Grupo
+                        row.push(parseFloat(item[4].replace(',', '.'))); // Importe
+
+                        if (row[2] != 'delete') {
+                            kwargs.push(row);
                         }
                     }
-
-                    out.push(row[0]);
-                    out.push(row[2]);
-                    out.push(parseFloat(row[4].replace(',', '.')));
-                } else if (row.length == 12) {
-                    // Cuentas
-                    var aux0 = new Date((new Date(1899, 11, 30)).getTime() + row[0] * 24 * 60 * 60 * 1000);
-                    if (aux0 != 'Invalid Date') {
-                        row[0] = `${aux0.getFullYear()}${('0' + (aux0.getMonth() + 1)).slice(-2)}`;
-                    }
-
-                    out.push(row[0]);
-                    out.push(row[2]);
-                    out.push(parseFloat(row[3]));
-                }
-
-                if (out.length == 3) {
-                    if ((out[0].indexOf('Fecha ') == -1)
-                            && (out[1].indexOf('REC.MCARD ') == -1)) {
-                        kwargs.push(out);
-                    }
-                }
-            });
-
-            // Ordenar por (0, 1) y quitar duplicados
-            kwargs = (kwargs.filter((item, index, self) => index === self.findIndex((t) => (t[0] === item[0] && t[1] === item[1] && t[2] === item[2]))))
-                .sort(function(a, b) {
-                    // Comparar el campo 0 (fecha)
-                    var dateA = new Date(a[0]);
-                    var dateB = new Date(b[0]);
-
-                    if (dateA < dateB) return -1;
-                    if (dateA > dateB) return 1;
-
-                    // Si las fechas son iguales, comparar el campo 1 (nombre)
-                    if (a[1] < b[1]) return -1;
-                    if (a[1] > b[1]) return 1;
-
-                    return 0; // Si son iguales
                 });
 
-            update();
-        };
+                endFiles = (files.length == ++ifile);
+                update();
+            };
 
-        reader.readAsArrayBuffer(file);
+            reader.readAsArrayBuffer(file);
+        });
     });
-    
+    //
     $('select[name=date]').on('change', function() {
         divTable($(this).val());
     });
@@ -145,155 +78,178 @@ function main() {
 
 // Actualizar valores de la clase
 function update() {
-    // Agrupar por 0, 1
-    // Iterar sobre los datos y acumular los valores
-    var auxSum  = {};
-    var auxDate = [];
+    // Mostrar por mes y año
+    // la interfaz {como mi excel de cuentas...}
+    if (endFiles == true) {
+        // Ocultar la subida de ficheros
+        $('input').height(0).css({display: 'none'});
+        // Ordenar por (Fecha de operación)
+        kwargs = kwargs.sort(function(a, b) {
+                    // Comparar el campo 0 (Fecha de operación)
+                    // Devolver -1 (menor), +1 (mayor), 0 (iguales)
+                    return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+                });
 
-    $.each(kwargs, function(i, item) {
-        var key = item[0] + '|' + item[1]; // Crear una clave única para la combinación de campo 0 y 1
-        if (!auxSum[key]) {
-            auxSum[key] = 0; // Inicializar si no existe
-        }
-        auxSum[key] += item[2]; // Sumar el campo 2
+        var act = '';
+        
+        $('select[name=date]').css({display: ''}).empty();
+            
+        $.each(kwargs, function(i, item) {
+            if (act != item[0].substring(0, 7)) {
+                $('[name=date]').append($('<option>', {
+                    value: item[0].substring(0, 7),
+                    text : item[0].substring(0, 7)
+                }));
 
-        auxDate.push(item[0]);
-    });
-    
-    // auxDate (quitar duplicados y ordenar)
-    $.unique(auxDate).sort(function(a, b) {
-        return a - b;
-    });
-    
-    // Informar select[name=date] para luego elegir ese periodo
-    $('select[name=date]').empty();
-    $.each(auxDate, function (i, item) {
-        $('[name=date]').append($('<option>', {
-            value: item,
-            text : item
-        }));
-    });
-
-    kwargSum = [];
-    $.each(auxSum, function(i, item) {
-        var i0 = i.split('|')[0];
-        var i1 = i.split('|')[1];
-
-        kwargSum.push([i0, i1, item, true]);
-    });
-    
-    divTable(auxDate[0]);
-}
-
-// Informar tabla
-function divTable(index) {
-    if (typeof index != 'undefined') {
-        var div = '<div><div>Concepto</div><div>Importe</div><div>Borrar</div></div>';
-    
-        $.each(kwargSum, function (i, item) {
-            if (item[0] == index) {
-                if (item[3]) {
-                    div += '<div>'
-                            +  '<div>' + item[1] + '</div>'
-                            + `<div onclick="importe(${i})">${formatNumber(item[2])}</div>`
-                            + `<div onclick="ocultar(${i})"><span class="material-symbols-outlined" >delete</span></div>`
-                        +  '</div>'
-                    +  '</div>';
-                }
+                act = item[0].substring(0, 7);
             }
         });
-    
-        $('#dnone').css({display: ''});
-        
-        $('[class=table]').css({display: ''});
-        $('[class=table]').empty();
-        $('[class=table]').append(div);
-    } else {
-        $('#dnone').css({display: 'none'});
-        $('[class=table]').css({display: 'none'});
+
+        divTable(kwargs[0][0].substring(0, 7))
     }
-
-    kwargCpy = '';
-    $('#importe').css({display: 'none'});
-    $('#importe').empty();
-
-    $("span.material-symbols-outlined:contains('content_copy')").hide();
-    $("span.material-symbols-outlined:contains('remove_selection')").hide();
-    $("span.material-symbols-outlined:contains('content_copy')").hide();
-    $("span.material-symbols-outlined:contains('mop')").hide();
-    undoShow();
 }
 
-function formatNumber(value) {
-    value = value.toFixed(2);
-    let [integerPart, decimalPart = '0'] = value.toString().split('.');
-    integerPart = (integerPart.startsWith('-') ? '-' : '+') + integerPart.replace('-', '').padStart(6, '0');
-    decimalPart = decimalPart.padEnd(2, '0');
-    return `${integerPart},${decimalPart}`;
-}
+// Obtener grupo del Concepto(Cuenta) o Nombre comercio(Tarjeta)
+function setGroup(value = '') {
+    var out = value;
 
-// Que a esta funcion el entre un index, similiar al de ocultar. Que no pierda el cambio de color de la celda (voy a cambiarlo por la fila)
-function importe(index) {
-    // Guardamos el importe en una auxiliar y le cambiamos le signo
-    var aux = formatNumber(kwargSum[index][2]);
-
-    aux = aux.replace('+', '+');
-    aux = aux.replace('-', '+');
-
-    // Seleccionamos la fila con el texto
-    var row = $('div.table div').filter(function() {
-        return $(this).text() == kwargSum[index][1] + formatNumber(kwargSum[index][2]) + 'delete';  // Filtramos por el texto que contiene el concepto
-    });
-    
-    // Cambiamos el color de fondo de esa fila
-    if (rgbToHex(row.find('div').css('background-color')) == '#dfffdd') {
-        // Eliminar
-        row.find('div').css('background-color', '#e5eef0');
-        
-        kwargCpy = kwargCpy.replace(aux, '');
-
-        if (kwargCpy == '') {
-            kwargCpy = '';
-            $('#importe').css({display: 'none'});
-            $("span.material-symbols-outlined:contains('content_copy')").hide();
-            $("span.material-symbols-outlined:contains('remove_selection')").hide();
-            $("span.material-symbols-outlined:contains('content_copy')").hide();
-            $("span.material-symbols-outlined:contains('mop')").hide();
-            undoShow();
-        }
-    } else {
-        // Insertar
-        row.find('div').css('background-color', '#dfffdd');
-
-        if (kwargCpy == '') {
-            kwargCpy += '';
-        }
-
-        kwargCpy += aux;
-        $("span.material-symbols-outlined:contains('content_copy')").show();
-        $("span.material-symbols-outlined:contains('remove_selection')").show();
-        $("span.material-symbols-outlined:contains('content_copy')").show();
-        $("span.material-symbols-outlined:contains('mop')").show();
-        undoShow();
-    }
-
-    $('#importe').css({display: (kwargCpy == ''?'none':'')});
-    $('#importe').empty();
-    $('#importe').append(kwargCpy);
-}
-
-function ocultar(index) {
-    kwargSum[index][3] = false;
-    divTable($('select[name=date]').val());
-}
-
-function undoShow() {
-    $("span.material-symbols-outlined:contains('undo')").hide();
-
-    $.each(kwargSum, function (i, item) {
-        if (item[0] == $('select[name=date]').val() && !item[3]) {
-            $("span.material-symbols-outlined:contains('undo')").show();
+    $.each(arrayGroup, function(i, item) {
+        if (value.indexOf(item[0].trimEnd()) >= 0) {
+            out = item[1].trimEnd();
             return;
         }
     });
+
+    return out;
+}
+
+// Actualiza la vista del mes selecionado
+function divTable(index) {
+    if (typeof index != 'undefined') {
+        // Tablas base
+        var ingresos = [
+              ['Nómina'      , '+0'] 
+            , ['Interes'     , '+0'] 
+            , ['Otros'       , '+0'] 
+            , ['Nómina extra', '+0'] 
+            , ['Inquilinos'  , '+0'] 
+            , ['Pilar'       , '+0']];
+
+        var gastos = [              
+              ['Luz'         , '+0'] 
+            , ['Agua'        , '+0']
+            , ['Contribución', '+0'] 
+            , ['Seguro'      , '+0'] 
+            , ['Plan Pensión', '+0']
+            , ['Gas'         , '+0']
+            , ['Móvil'       , '+0']
+            , ['Internet'    , '+0']
+            , ['Automóvil'   , '+0']
+            , ['SubComunidad', '+0']
+            , ['Comunidad'   , '+0']
+            , ['Otros'       , '+0']
+            , ['Caprichos'   , '+0']
+            , ['Casero'      , '+0']
+            , ['Farmacía'    , '+0']
+            , ['Alldebrid'   , '+0']];
+        // Extraemos el array del mes indicado
+        var kwargsIndex = (kwargs.filter(item => item[0].substring(0, 7) == index))
+            .sort(function(a, b) {
+                    // Comparar el campo 2 (Grupo)
+                    // Devolver -1 (menor), +1 (mayor), 0 (iguales)
+                    return a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0;
+                });
+
+        // Lo ordenanos y agrupamos por Grupo y le indicamos si es gastos o ingresos
+        var kwgroup = {};
+        var antGroup = kwargsIndex[0][2];
+        kwgroup[kwargsIndex[0][2]] = ['', ''];
+
+        $.each(kwargsIndex, function(i, item) {
+            if (antGroup != item[2]) {
+                kwgroup[item[2]] = ['', ''];
+
+                antGroup = item[2];
+            }
+
+            kwgroup[item[2]][0] += ('+' + Math.abs(item[3])).replace('.', ',');
+
+            if (kwgroup[item[2]][1] == '') {
+                kwgroup[item[2]][1] = 'gastos';
+                if (item[3] > 0) {
+                    kwgroup[item[2]][1] = 'ingresos';
+                }
+            }
+        });
+        // 
+
+        var kwgroupFil = null;
+        // Lo mandamos a la tabla correspondiente: ingresos
+        kwgroupFil = Object.entries(kwgroup).filter(([_, values]) => values[1] === 'ingresos').map(([index, _]) => [index, kwgroup[index][0]]);
+
+        $.each(ingresos, function(i, item) {
+            if ((kwgroupFil.filter(item0 => item0[0] == item[0])).length == 1) {
+                ingresos[i][1] = kwgroupFil.filter(item0 => item0[0] == item[0])[0][1];
+                kwgroupFil = kwgroupFil.filter(item0 => item0[0] != item[0]);
+            }
+        });
+
+        $.merge(ingresos, kwgroupFil);
+        // Lo mandamos a la tabla correspondiente: gastos
+        kwgroupFil = Object.entries(kwgroup).filter(([_, values]) => values[1] === 'gastos').map(([index, _]) => [index, kwgroup[index][0]]);
+
+        $.each(gastos, function(i, item) {
+            if ((kwgroupFil.filter(item0 => item0[0] == item[0])).length == 1) {
+                gastos[i][1] = kwgroupFil.filter(item0 => item0[0] == item[0])[0][1];
+                kwgroupFil = kwgroupFil.filter(item0 => item0[0] != item[0]);
+            }
+        });
+
+        $.merge(gastos, kwgroupFil);
+        // **
+        $('div.table').remove();
+        // Crear un array con los nombres abreviados de los meses
+        var meses = Array.from({length: 12}, (_, i) => (new Intl.DateTimeFormat(userLanguage, {month: 'long' }).format(new Date(0, i))).substr(0,3) + '.');
+        // Separar la fecha en año y mes
+        var dateFormat = meses[parseInt(index.split('-')[1]) - 1] + '-' + index.split('-')[0];
+        // Crear un nuevo div con el contendio de ese mes
+
+        var nuevoDiv = $(`<div class='table'></div>`);
+        var html = [];
+        html.push(`<div><div>PERIODO</div><div>INGRESOS</div><div>PAGADOR</div><div>GASTOS</div><div>CONCEPTO</div></div>`);
+        // Datos por defecto
+        for (var i = 0; i < Math.max(ingresos.length, gastos.length) + 1; i++) {
+            var out = [ingresos, gastos].flatMap(a => a[i] ? [+addsImport(a[i][1]), a[i][0]] : ['', '']);
+
+            html.push(`<div><div>${dateFormat}</div><div>${out[0]}</div><div>${out[1]}</div><div>${out[2]}</div><div>${out[3]}</div></div>`);
+            dateFormat = '';            
+        }
+
+        nuevoDiv.html(html.join(' '));
+        // Añadir el nuevo div al final del body
+        $('body').append(nuevoDiv);
+        // Evento onClick
+        $('.table div div').on('click', function() {
+            if (($(this).css('cursor') == 'pointer') && ($(this).text() != '')) {
+                // Crear elemento textarea con el array generado y seleccionar el contenido
+                var $temp = $('<textarea>').val($(this).text()).appendTo('body').select();
+                // Ejecuta el evento copiar al portapaleles
+                document.execCommand('copy');
+                // Borra de la variable temporal creada
+                $temp.remove();
+        
+                toast('¡Texto copiado!', 3000);
+            }
+        });        
+    }
+}
+
+function addsImport(value = '') {
+    var out = 0;
+    
+    $.each(value.replace(',', '.').split('+').filter(item => item != ''), function(index, value) { 
+        out += parseFloat(value);
+    });
+
+    return (Math.round(out * 100) / 100);
 }
