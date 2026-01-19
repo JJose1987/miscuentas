@@ -209,9 +209,9 @@ function divTable(index) {
         // **
         $('div.table').remove();
         // Crear un array con los nombres abreviados de los meses
-        var meses = Array.from({length: 12}, (_, i) => (new Intl.DateTimeFormat(userLanguage, {month: 'long' }).format(new Date(0, i))).substr(0,3) + '.');
+        var months = Array.from({length: 12}, (_, i) => (new Intl.DateTimeFormat(userLanguage, {month: 'long' }).format(new Date(0, i))).substr(0,3));
         // Separar la fecha en año y mes
-        var dateFormat = meses[parseInt(index.split('-')[1]) - 1] + '-' + index.split('-')[0];
+        var dateFormat = months[parseInt(index.split('-')[1]) - 1] + '.-' + index.split('-')[0];
         // Crear un nuevo div con el contendio de ese mes
 
         var nuevoDiv = $(`<div class='table'></div>`);
@@ -230,7 +230,7 @@ function divTable(index) {
         $('body').append(nuevoDiv);
         // Evento onClick
         $('.table div div').on('click', function() {
-            if (($(this).css('cursor') == 'pointer') && ($(this).text() != '')) {
+            if (($(this).css('cursor') == 'copy') && ($(this).text() != '')) {
                 // Crear elemento textarea con el array generado y seleccionar el contenido
                 var $temp = $('<textarea>').val($(this).text()).appendTo('body').select();
                 // Ejecuta el evento copiar al portapaleles

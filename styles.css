@@ -6,6 +6,7 @@ body {
    margin: 0.1%;
    text-align: left;
    vertical-align: top;
+   background: #f6f9f9;
 }
 
 /* Table */
@@ -14,17 +15,25 @@ body {
     border-collapse: collapse;
     width: 90%;
     margin: 1%;
+    
+    border-radius: 1vmax;
+    box-shadow: 0 0 1vmax rgba(0, 0, 0, 0.1);
 }
 /* Row */
 .table div {
     display: table-row;
 }
 /* Cell */
+.table div div:not(:empty) {
+    cursor: copy;
+}
 /* Estilo para la primera fila (encabezado) */
 .table > div:first-child div {
     font-weight: bold;
     text-align: center;
     cursor: default;
+    background: #005265;
+    color: #ffffff;
 }
 /* Estilo para la primera columna */
 .table > div > div:first-child {
@@ -42,8 +51,8 @@ body {
     width: 17%;
     height: 1.5vmax;
     line-height: 1.5vmax;
-    cursor: pointer;
     text-overflow: ellipsis;
+    background: #ffffff;
 }
 
 /* */
