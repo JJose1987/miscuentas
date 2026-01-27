@@ -221,7 +221,7 @@ function divTable(index) {
         for (var i = 0; i < Math.max(ingresos.length, gastos.length) + 1; i++) {
             var out = [ingresos, gastos].flatMap(a => a[i] ? [`+${addsImport(a[i][1])}`, a[i][0]] : ['', '']);
 
-            html.push(`<div><div>${dateFormat}</div><div>${out[0]}</div><div>${out[1]}</div><div>${out[2]}</div><div>${out[3]}</div></div>`);
+            html.push(`<div><div>${dateFormat}</div><div>${out[0].replace('.', ',')}</div><div>${out[1]}</div><div>${out[2].replace('.', ',')}</div><div>${out[3]}</div></div>`);
             dateFormat = '';            
         }
 
