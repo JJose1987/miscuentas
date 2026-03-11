@@ -81,6 +81,7 @@ var arrayGroup = [
     , ["FARMACIA DRA. M.J. MELGAR     ", "Farmacía"]
     , ["FARMACIA MERCEDES             ", "Farmacía"]
     , ["FARMAVOS                      ", "Farmacía"]
+    , ["FCIA. LA GAVIA, 80            ", "Farmacía"]
     , ["FAUNIA - TPV PC               ", "Caprichos"]
     , ["FCC AQUALI472603 875010009854 ", "Agua"]
     , ["FCC Aquali472603 875010009854 ", "Agua"]
@@ -100,7 +101,9 @@ var arrayGroup = [
     , ["HOSTAL-REST. EL SERRANO       ", "Otros"]
     , ["HOTEL NOVOTEL MADRID          ", "Otros"]
     , ["IKEA ALMERIA HFB              ", "Caprichos"]
+    , ["IKEA ALMERIA FOOD             ", "Otros"]
     , ["IKEA LA GAVIA HFB             ", "Caprichos"]
+    , ["IKEA LA GAVIA FOOD            ", "Otros"]
     , ["JUEGAVIA S.L.                 ", "Caprichos"]
     , ["KATEL REPARACIONES C          ", "Cocina"]
     , ["KEBAH NARVAEZ                 ", "Otros"]
@@ -174,4 +177,10 @@ var arrayGroup = [
     , ["ABADES                        ", "Otros"]
     , ["CAFETERIA                     ", "Otros"]
     , ["PLENERGY US289 ALME           ", "Automóvil"]
+    , ["ARBITRADE CENTRO S.A.U        ", "Otros"]
+    , ["TABERNITA DOMINGUEZ           ", "Otros"]
+    , ["CHIVACHIVITA                  ", "Caprichos"]
+    , ["FixPart B.V.                  ", "Caprichos"]
+    
+
 ];
