@@ -173,10 +173,10 @@ function divTable(index) {
         const gas = gastosFinal[i] || ['', 0];
 
         // Solo formatear a string con comas al renderizar en pantalla
-        const txtIngresoValue = ing[1] > 0 ? `+${ing[1].toFixed(2).replace('.', ',')}` : '';
-        const txtIngresoCat = ing[0];
-        const txtGastoValue = gas[1] > 0 ? `+${gas[1].toFixed(2).replace('.', ',')}` : '';
-        const txtGastoCat = gas[0];
+        const txtIngresoValue = (ing[0] != ''? (ing[1] > 0 ? `+${ing[1].toFixed(2).replace('.', ',')}`: '+0,00'): '');
+        const txtIngresoCat   = ing[0];
+        const txtGastoValue   = (gas[0] != ''? (gas[1] > 0 ? `+${gas[1].toFixed(2).replace('.', ',')}`: '+0,00'): '');
+        const txtGastoCat     = gas[0];
 
         html.push(`<div>
             <div>${dateFormat}</div>
