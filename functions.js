@@ -1,74 +1,85 @@
-/* JavaScript */
-/* https://www.degraeve.com/reference/urlencoding.php */
-// Variables
-var kwargs = [];
-var endFiles  = false;
-// Funciones
+/* JavaScript Modernizado */
+
+// Variables de estado encapsuladas
+let kwargs = [];
+let endFiles = false;
+
+// Nota: Asumo que 'arrayGroup' y 'userLanguage' se definen externamente.
+// Si no, deberían pasarse como parámetros.
+
 function main() {
-    //
-    $('select[name=date]').css({display: 'none'});
-    //
+    // Ocultar select de fecha al inicio con CSS nativo o jQuery simplificado
+    $('select[name=date]').hide();
+
     $('input[accept=".xls,.xlsx"]').on('change', function (e) {
         kwargs = [];
+        const files = e.target.files;
+        if (!files.length) return;
 
-        let files = e.target.files;
-        let ifile = 0;
+        let processedFilesCount = 0;
 
         Array.from(files).forEach(file => {
-            let reader = new FileReader();
+            const reader = new FileReader();
 
             reader.onload = function (event) {
-                let data = new Uint8Array(event.target.result);
-                let workbook = XLSX.read(data, { type: 'array' });
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
 
-                // Primera hoja
-                let sheetName = workbook.SheetNames[0];
-                let worksheet = workbook.Sheets[sheetName];
-                // Convertir a JSON
-                let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 jsonData.forEach(item => {
-                    row = [];
-                    // Cuenta    : Fecha de operación, Fecha valor, Concepto, Importe, Divisa, Saldo, Divisa, Nº mov, Oficina
-                    // Tarjeta   : Fecha operación, Hora, Nombre comercio, Concepto, Importe, Divisa
+                    let row = []; // CORREGIDO: Declaración explícita de variable local
+                    let dateTime;
 
-                    // Resultado : Fecha de operación + Hora, Concepto, 'Grupo', Importe    
-                    var date_time;
-                    if (item.length == 12 && $.isNumeric(item[0])) {
-                        // Cuenta
-                        date_time = new Date((new Date(1899, 11, 30)).getTime() + parseInt(item[0]) * 24 * 60 * 60 * 1000);
-
-                        row.push(date_time.toISOString());              // Fecha de operación
+                    // Tipo 1: Cuenta Bancaria (12 columnas)
+                    if (item.length === 12 && $.isNumeric(item[0])) {
+                        // Corrección de fecha base de Excel (30/12/1899)
+                        dateTime = new Date(new Date(1899, 11, 30).getTime() + parseInt(item[0]) * 24 * 60 * 60 * 1000);
+                        
+                        row.push(dateTime.toISOString()); 
                         row.push(item[2]);                              // Concepto
                         row.push(setGroup(item[2]));                    // Grupo
-                        row.push(parseFloat(item[3]));                  // Importe
+                        row.push(parseFloat(item[3]));                  // Importe (Numérico)
+                        row.push("+");                                  // Signo
 
-                        if (row[2] != 'delete') {
-                            kwargs.push(row);
-                        }
-                    } else if (item.length == 6 && $.isNumeric(item[0][0])) {
-                        // Tarjeta
-                        date_time = new Date((item[0]).substring(6), parseInt((item[0]).substring(3,5) - 1), (item[0]).substring(0,2), (item[1]).substring(0,2), (item[1]).substring(3));
+                    // Tipo 2: Tarjeta (6 columnas)
+                    } else if (item.length === 6 && item[0] && $.isNumeric(item[0][0])) {
+                        const dateStr = item[0];
+                        const timeStr = item[1];
+                        
+                        dateTime = new Date(
+                            dateStr.substring(6), 
+                            parseInt(dateStr.substring(3, 5)) - 1, 
+                            dateStr.substring(0, 2), 
+                            timeStr.substring(0, 2), 
+                            timeStr.substring(3)
+                        );
 
-                        row.push(date_time.toISOString());               // Fecha de operación + Hora
-                        row.push(item[2]);                               // Concepto
+                        row.push(dateTime.toISOString());
+                        row.push(item[2]);                               // Comercio / Concepto
                         row.push(setGroup(item[2]));                     // Grupo
-                        row.push(parseFloat(item[4].replace(',', '.'))); // Importe
+                        row.push(parseFloat(item[4].replace(',', '.'))); // Importe (Numérico)
+                        row.push(item[3]);                               // Signo
+                        
+                    }
 
-                        if (row[2] != 'delete') {
-                            kwargs.push(row);
-                        }
+                    // Guardar si no está marcado para borrar
+                    if (row.length > 0 && row[2] !== 'delete') {
+                        kwargs.push(row);
                     }
                 });
 
-                endFiles = (files.length == ++ifile);
+                processedFilesCount++;
+                endFiles = (files.length === processedFilesCount);
                 update();
             };
 
             reader.readAsArrayBuffer(file);
         });
     });
-    //
+
     $('select[name=date]').on('change', function() {
         divTable($(this).val());
     });
@@ -76,180 +87,118 @@ function main() {
     update();
 }
 
-// Actualizar valores de la clase
 function update() {
-    // Mostrar por mes y año
-    // la interfaz {como mi excel de cuentas...}
-    if (endFiles == true) {
-        // Ocultar la subida de ficheros
-        $('input').height(0).css({display: 'none'});
-        // Ordenar por (Fecha de operación)
-        kwargs = kwargs.sort(function(a, b) {
-                    // Comparar el campo 0 (Fecha de operación)
-                    // Devolver -1 (menor), +1 (mayor), 0 (iguales)
-                    return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
-                });
+    if (!endFiles) return;
 
-        var act = '';
+    // Ocultar la subida de ficheros de forma limpia
+    $('input[type=file]').hide();
+
+    // Ordenar cronológicamente por Fecha de operación
+    kwargs.sort((a, b) => a[0].localeCompare(b[0]));
+
+    const $selectDate = $('select[name=date]').empty().show();
+    let lastMonthYear = '';
         
-        $('select[name=date]').css({display: ''}).empty();
-            
-        $.each(kwargs, function(i, item) {
-            if (act != item[0].substring(0, 7)) {
-                $('[name=date]').append($('<option>', {
-                    value: item[0].substring(0, 7),
-                    text : item[0].substring(0, 7)
-                }));
+    kwargs.forEach(item => {
+        const monthYear = item[0].substring(0, 7); // YYYY-MM
+        if (lastMonthYear !== monthYear) {
+            $selectDate.append($('<option>', { value: monthYear, text: monthYear }));
+            lastMonthYear = monthYear;
+        }
+    });
 
-                act = item[0].substring(0, 7);
-            }
-        });
-
-        divTable(kwargs[0][0].substring(0, 7))
+    if (kwargs.length > 0) {
+        divTable(kwargs[0][0].substring(0, 7));
     }
 }
 
-// Obtener grupo del Concepto(Cuenta) o Nombre comercio(Tarjeta)
 function setGroup(value = '') {
-    var out = value;
-
-    $.each(arrayGroup, function(i, item) {
-        if (value.indexOf(item[0].trimEnd()) >= 0) {
-            out = item[1].trimEnd();
-            return;
-        }
-    });
-
-    return out;
+    if (!value) return '';
+    // Asumiendo que arrayGroup existe globalmente.
+    // Optimización: buscar coincidencia
+    const match = arrayGroup.find(item => value.includes(item[0].trimEnd()));
+    return match ? match[1].trimEnd() : value;
 }
 
-// Actualiza la vista del mes selecionado
 function divTable(index) {
-    if (typeof index != 'undefined') {
-        // Tablas base
-        var ingresos = [
-              ['Nómina'      , '+0'] 
-            , ['Interes'     , '+0'] 
-            , ['Otros'       , '+0'] 
-            , ['Nómina extra', '+0'] 
-            , ['Inquilinos'  , '+0'] 
-            , ['Pilar'       , '+0']];
+    if (!index) return;
 
-        var gastos = [              
-              ['Luz'         , '+0'] 
-            , ['Agua'        , '+0']
-            , ['Contribución', '+0'] 
-            , ['Seguro'      , '+0'] 
-            , ['Plan Pensión', '+0']
-            , ['Gas'         , '+0']
-            , ['Móvil'       , '+0']
-            , ['Internet'    , '+0']
-            , ['Automóvil'   , '+0']
-            , ['SubComunidad', '+0']
-            , ['Comunidad'   , '+0']
-            , ['Otros'       , '+0']
-            , ['Caprichos'   , '+0']
-            , ['Casero'      , '+0']
-            , ['Farmacía'    , '+0']
-            , ['Alldebrid'   , '+0']];
-        // Extraemos el array del mes indicado
-        var kwargsIndex = (kwargs.filter(item => item[0].substring(0, 7) == index))
-            .sort(function(a, b) {
-                    // Comparar el campo 2 (Grupo)
-                    // Devolver -1 (menor), +1 (mayor), 0 (iguales)
-                    return a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0;
-                });
+    // Estructuras base como Maps para búsquedas O(1) rápidas
+    const ingresosBase = ['Nómina', 'Interes', 'Otros', 'Nómina extra', 'Inquilinos', 'Pilar'];
+    const gastosBase = ['Luz', 'Agua', 'Contribución', 'Seguro', 'Plan Pensión', 'Gas', 'Móvil', 'Internet', 'Automóvil', 'SubComunidad', 'Comunidad', 'Otros', 'Caprichos', 'Casero', 'Farmacía', 'Alldebrid'];
 
-        // Lo ordenanos y agrupamos por Grupo y le indicamos si es gastos o ingresos
-        var kwgroup = {};
-        var antGroup = kwargsIndex[0][2];
-        kwgroup[kwargsIndex[0][2]] = ['', ''];
+    // Filtrar movimientos del mes seleccionado
+    const kwargsIndex = kwargs.filter(item => item[0].substring(0, 7) === index);
 
-        $.each(kwargsIndex, function(i, item) {
-            if (antGroup != item[2]) {
-                kwgroup[item[2]] = ['', ''];
-
-                antGroup = item[2];
-            }
-
-            kwgroup[item[2]][0] += ('+' + Math.abs(item[3])).replace('.', ',');
-
-            if (kwgroup[item[2]][1] == '') {
-                kwgroup[item[2]][1] = 'gastos';
-                if (item[3] > 0) {
-                    kwgroup[item[2]][1] = 'ingresos';
-                }
-            }
-        });
-        // 
-
-        var kwgroupFil = null;
-        // Lo mandamos a la tabla correspondiente: ingresos
-        kwgroupFil = Object.entries(kwgroup).filter(([_, values]) => values[1] === 'ingresos').map(([index, _]) => [index, kwgroup[index][0]]);
-
-        $.each(ingresos, function(i, item) {
-            if ((kwgroupFil.filter(item0 => item0[0] == item[0])).length == 1) {
-                ingresos[i][1] = kwgroupFil.filter(item0 => item0[0] == item[0])[0][1];
-                kwgroupFil = kwgroupFil.filter(item0 => item0[0] != item[0]);
-            }
-        });
-
-        $.merge(ingresos, kwgroupFil);
-        // Lo mandamos a la tabla correspondiente: gastos
-        kwgroupFil = Object.entries(kwgroup).filter(([_, values]) => values[1] === 'gastos').map(([index, _]) => [index, kwgroup[index][0]]);
-
-        $.each(gastos, function(i, item) {
-            if ((kwgroupFil.filter(item0 => item0[0] == item[0])).length == 1) {
-                gastos[i][1] = kwgroupFil.filter(item0 => item0[0] == item[0])[0][1];
-                kwgroupFil = kwgroupFil.filter(item0 => item0[0] != item[0]);
-            }
-        });
-
-        $.merge(gastos, kwgroupFil);
-        // **
-        $('div.table').remove();
-        // Crear un array con los nombres abreviados de los meses
-        var months = Array.from({length: 12}, (_, i) => (new Intl.DateTimeFormat(userLanguage, {month: 'long' }).format(new Date(0, i))).substr(0,3));
-        // Separar la fecha en año y mes
-        var dateFormat = months[parseInt(index.split('-')[1]) - 1] + '.-' + index.split('-')[0];
-        // Crear un nuevo div con el contendio de ese mes
-
-        var nuevoDiv = $(`<div class='table'></div>`);
-        var html = [];
-        html.push(`<div><div>PERIODO</div><div>INGRESOS</div><div>PAGADOR</div><div>GASTOS</div><div>CONCEPTO</div></div>`);
-        // Datos por defecto
-        for (var i = 0; i < Math.max(ingresos.length, gastos.length) + 1; i++) {
-            var out = [ingresos, gastos].flatMap(a => a[i] ? [`+${addsImport(a[i][1])}`, a[i][0]] : ['', '']);
-
-            html.push(`<div><div>${dateFormat}</div><div>${out[0].replace('.', ',')}</div><div>${out[1]}</div><div>${out[2].replace('.', ',')}</div><div>${out[3]}</div></div>`);
-            dateFormat = '';            
-        }
-
-        nuevoDiv.html(html.join(' '));
-        // Añadir el nuevo div al final del body
-        $('body').append(nuevoDiv);
-        // Evento onClick
-        $('.table div div').on('click', function() {
-            if (($(this).css('cursor') == 'copy') && ($(this).text() != '')) {
-                // Crear elemento textarea con el array generado y seleccionar el contenido
-                var $temp = $('<textarea>').val($(this).text()).appendTo('body').select();
-                // Ejecuta el evento copiar al portapaleles
-                document.execCommand('copy');
-                // Borra de la variable temporal creada
-                $temp.remove();
-        
-                toast('¡Texto copiado!', 3000);
-            }
-        });        
-    }
-}
-
-function addsImport(value = '') {
-    var out = 0;
+    // Agrupar saldos por categoría directamente como números (evitamos el truco de "+1+2+3")
+    const totalPorGrupo = {};
     
-    $.each(value.replace(',', '.').split('+').filter(item => item != ''), function(index, value) { 
-        out += parseFloat(value);
+    kwargsIndex.forEach(item => {
+        const grupo = item[2];
+        const importe = item[3];
+        
+        if (!totalPorGrupo[grupo]) {
+            totalPorGrupo[grupo] = { total: 0, tipo: importe > 0 ? 'ingresos' : 'gastos' };
+        }
+        totalPorGrupo[grupo].total += (item[4] != "COMPRA" && item[4] != "+"?-1 :+1) * Math.abs(importe);
     });
 
-    return (Math.round(out * 100) / 100);
+    // Construir listas finales asociando los datos calculados
+    const ingresosFinal = ingresosBase.map(cat => [cat, totalPorGrupo[cat]?.tipo === 'ingresos' ? totalPorGrupo[cat].total : 0]);
+    const gastosFinal = gastosBase.map(cat => [cat, totalPorGrupo[cat]?.tipo === 'gastos' ? totalPorGrupo[cat].total : 0]);
+
+    // Añadir grupos nuevos/extra que vinieran en el Excel y no estaban en la base
+    Object.entries(totalPorGrupo).forEach(([grupo, info]) => {
+        if (info.tipo === 'ingresos' && !ingresosBase.includes(grupo)) {
+            ingresosFinal.push([grupo, info.total]);
+        } else if (info.tipo === 'gastos' && !gastosBase.includes(grupo)) {
+            gastosFinal.push([grupo, info.total]);
+        }
+    });
+
+    // Renderizado de UI
+    $('div.table').remove();
+    
+    const lang = typeof userLanguage !== 'undefined' ? userLanguage : navigator.language;
+    const months = Array.from({length: 12}, (_, i) => new Intl.DateTimeFormat(lang, {month: 'long'}).format(new Date(0, i)).substr(0,3));
+    
+    let dateFormat = months[parseInt(index.split('-')[1]) - 1] + '.-' + index.split('-')[0];
+    const $nuevoDiv = $(`<div class='table'></div>`);
+    const html = [`<div><div>PERIODO</div><div>INGRESOS</div><div>PAGADOR</div><div>GASTOS</div><div>CONCEPTO</div></div>`];
+
+    const maxFilas = Math.max(ingresosFinal.length, gastosFinal.length);
+
+    for (let i = 0; i < maxFilas; i++) {
+        const ing = ingresosFinal[i] || ['', 0];
+        const gas = gastosFinal[i] || ['', 0];
+
+        // Solo formatear a string con comas al renderizar en pantalla
+        const txtIngresoValue = ing[1] > 0 ? `+${ing[1].toFixed(2).replace('.', ',')}` : '';
+        const txtIngresoCat = ing[0];
+        const txtGastoValue = gas[1] > 0 ? `+${gas[1].toFixed(2).replace('.', ',')}` : '';
+        const txtGastoCat = gas[0];
+
+        html.push(`<div>
+            <div>${dateFormat}</div>
+            <div>${txtIngresoValue}</div>
+            <div>${txtIngresoCat}</div>
+            <div>${txtGastoValue}</div>
+            <div>${txtGastoCat}</div>
+        </div>`);
+        
+        dateFormat = '';            
+    }
+
+    $nuevoDiv.html(html.join(' '));
+    $('body').append($nuevoDiv);
+
+    // Evento de copia moderno (Clipboard API)
+    $('.table div div').css('cursor', 'copy').on('click', function() {
+        const texto = $(this).text().trim();
+        if (texto) {
+            navigator.clipboard.writeText(texto)
+                .then(() => toast('¡Texto copiado!', 3000))
+                .catch(err => console.error('Error al copiar: ', err));
+        }
+    });        
 }
